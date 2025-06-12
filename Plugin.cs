@@ -30,6 +30,10 @@ namespace UpdateDimLabels
 
             _company = new ExcelLookup(Path.Combine(dllFolder, "CompanyLookup.xlsx"));
             _purpose = new ExcelLookup(Path.Combine(dllFolder, "PurposeLookup.xlsx"));
+
+            // notify that the plug-in loaded successfully
+            Editor ed = AcApp.DocumentManager.MdiActiveDocument.Editor;
+            ed.WriteMessage("\nUpdateDimLabels loaded. Run UPDDIM to update dimensions.");
         }
 
         public void Terminate() { /* nothing to clean up */ }
