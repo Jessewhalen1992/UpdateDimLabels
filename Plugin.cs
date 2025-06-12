@@ -22,18 +22,27 @@ namespace UpdateDimLabels
 
         public void Initialize()
         {
-            // workbook files live next to the DLL
-            string dllFolder = Path.GetDirectoryName(
-                System.Reflection.Assembly.GetExecutingAssembly().Location);
+            try
+            {
+                // workbook files live next to the DLL
+                string dllFolder = Path.GetDirectoryName(
+                    System.Reflection.Assembly.GetExecutingAssembly().Location);
 
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
-            _company = new ExcelLookup(Path.Combine(dllFolder, "CompanyLookup.xlsx"));
-            _purpose = new ExcelLookup(Path.Combine(dllFolder, "PurposeLookup.xlsx"));
+                _company = new ExcelLookup(Path.Combine(dllFolder, "CompanyLookup.xlsx"));
+                _purpose = new ExcelLookup(Path.Combine(dllFolder, "PurposeLookup.xlsx"));
 
-            // notify that the plug-in loaded successfully
-            Editor ed = AcApp.DocumentManager.MdiActiveDocument.Editor;
-            ed.WriteMessage("\nUpdateDimLabels loaded. Run UPDDIM to update dimensions.");
+                // notify that the plug-in loaded successfully
+                Document doc = AcApp.DocumentManager.MdiActiveDocument;
+                if (doc != null)
+                    doc.Editor.WriteMessage("\nUpdateDimLabels loaded. Run UPDDIM to update dimensions.");
+            }
+            catch (System.Exception ex)
+            {
+                AcApp.ShowAlertDialog(
+                    "UpdateDimLabels failed to load:\n" + ex.Message);
+            }
         }
 
         public void Terminate() { /* nothing to clean up */ }
