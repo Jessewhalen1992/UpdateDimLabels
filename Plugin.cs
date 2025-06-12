@@ -7,6 +7,8 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.Gis.Map.ObjectData;
 using OfficeOpenXml;
+using System.Text;
+
 
 // create a short alias so the code reads cleaner
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
@@ -22,30 +24,18 @@ namespace UpdateDimLabels
 
         public void Initialize()
         {
-            try
-            {
-                // workbook files live next to the DLL
-                string dllFolder = Path.GetDirectoryName(
-                    System.Reflection.Assembly.GetExecutingAssembly().Location);
+            // ── Enable “IBM437”, “ISO-8859-1”, etc. on .NET 8 ──
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            string dllFolder = Path.GetDirectoryName(
+                System.Reflection.Assembly.GetExecutingAssembly().Location);
 
-                _company = new ExcelLookup(Path.Combine(dllFolder, "CompanyLookup.xlsx"));
-                _purpose = new ExcelLookup(Path.Combine(dllFolder, "PurposeLookup.xlsx"));
+            _company = new ExcelLookup(Path.Combine(dllFolder, "CompanyLookup.xlsx"));
+            _purpose = new ExcelLookup(Path.Combine(dllFolder, "PurposeLookup.xlsx"));
 
-                // notify that the plug-in loaded successfully
-                Document doc = AcApp.DocumentManager.MdiActiveDocument;
-                if (doc != null)
-                    doc.Editor.WriteMessage("\nUpdateDimLabels loaded. Run UPDDIM to update dimensions.");
-            }
-            catch (System.Exception ex)
-            {
-                AcApp.ShowAlertDialog(
-                    "UpdateDimLabels failed to load:\n" + ex.Message);
-            }
-            // notify that the plug-in loaded successfully
-            Editor ed = AcApp.DocumentManager.MdiActiveDocument.Editor;
-            ed.WriteMessage("\nUpdateDimLabels loaded. Run UPDDIM to update dimensions.");
+            Document doc = AcApp.DocumentManager.MdiActiveDocument;
+            doc?.Editor.WriteMessage(
+                "\nUpdateDimLabels loaded. Run UPDDIM to update dimensions.");
         }
 
         public void Terminate() { /* nothing to clean up */ }
