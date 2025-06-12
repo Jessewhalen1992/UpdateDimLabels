@@ -1,5 +1,13 @@
 # UpdateDimLabels Plugin
 
+## Quick Build
+
+```bash
+dotnet build -c Release            # builds net48 + net8.0-windows
+# The ready-to-use plugin appears in: UpdateDimLabels.bundle
+# Copy that folder to C:\ProgramData\Autodesk\ApplicationPlugins
+```
+
 This AutoCAD Map 3D plug‑in adds the `UPDDIM` command which updates an aligned
  dimension using Object‑Data from a selected polyline. The command becomes
  available after loading the compiled DLL with `NETLOAD`.
