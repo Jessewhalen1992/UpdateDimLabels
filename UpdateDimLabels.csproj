@@ -9,39 +9,32 @@
   </PropertyGroup>
 
   <!-- Framework build links against AutoCAD 2024 DLLs -->
-  <ItemGroup Condition="'$(TargetFramework)'=='net48'">
-    <Reference Include="acdbmgd"
-              HintPath="C:\Program Files\Autodesk\AutoCAD 2024\acdbmgd.dll"
-              Private="false" />
-    <Reference Include="acmgd"
-              HintPath="C:\Program Files\Autodesk\AutoCAD 2024\acmgd.dll"
-              Private="false" />
-    <Reference Include="accoremgd"
-              HintPath="C:\Program Files\Autodesk\AutoCAD 2024\accoremgd.dll"
-              Private="false" />
-    <Reference Include="ManagedMapApi"
-              HintPath="C:\Program Files\Autodesk\AutoCAD 2024\Map\ManagedMapApi.dll"
-              Private="false" />
-  </ItemGroup>
 
   <!-- Core build links against AutoCAD 2025 DLLs -->
   <ItemGroup Condition="'$(TargetFramework)'=='net8.0-windows'">
-    <Reference Include="acdbmgd"
-              HintPath="C:\Program Files\Autodesk\AutoCAD 2025\acdbmgd.dll"
-              Private="false" />
-    <Reference Include="acmgd"
-              HintPath="C:\Program Files\Autodesk\AutoCAD 2025\acmgd.dll"
-              Private="false" />
-    <Reference Include="accoremgd"
-              HintPath="C:\Program Files\Autodesk\AutoCAD 2025\accoremgd.dll"
-              Private="false" />
-    <Reference Include="ManagedMapApi"
-              HintPath="C:\Program Files\Autodesk\AutoCAD 2025\Map\ManagedMapApi.dll"
-              Private="false" />
+    <Reference Include="acdbmgd" HintPath="C:\Program Files\Autodesk\AutoCAD 2025\acdbmgd.dll" Private="false" />
+    <Reference Include="acmgd" HintPath="C:\Program Files\Autodesk\AutoCAD 2025\acmgd.dll" Private="false" />
+    <Reference Include="accoremgd" HintPath="C:\Program Files\Autodesk\AutoCAD 2025\accoremgd.dll" Private="false" />
+    <Reference Include="ManagedMapApi" HintPath="C:\Program Files\Autodesk\AutoCAD 2025\Map\ManagedMapApi.dll" Private="false" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="EPPlus" Version="8.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="accoremgd">
+      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2022\accoremgd.dll</HintPath>
+    </Reference>
+    <Reference Include="Acdbmgd">
+      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2022\acdbmgd.dll</HintPath>
+    </Reference>
+    <Reference Include="Acmgd">
+      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2022\acmgd.dll</HintPath>
+    </Reference>
+    <Reference Include="ManagedMapApi">
+      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2022\Map\ManagedMapApi.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <Target Name="CopyToBundle" AfterTargets="Build">
