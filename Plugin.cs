@@ -24,7 +24,7 @@ namespace UpdateDimLabels
 
         public void Initialize()
         {
-            // ── Enable “IBM437”, “ISO-8859-1”, etc. on .NET 8 ──
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             string dllFolder = Path.GetDirectoryName(
@@ -102,6 +102,14 @@ namespace UpdateDimLabels
                 dim.DimensionText = newText;   // override
                 tr.Commit();
             }
+        }
+
+        [CommandMethod("DIMVER")]
+        public void DumpAssemblyVersion()
+        {
+            var asm = typeof(Plugin).Assembly;
+            Autodesk.AutoCAD.ApplicationServices.Application
+                .ShowAlertDialog($"Loaded from:\n{asm.Location}\n\nVersion {asm.GetName().Version}");
         }
     }
 }
