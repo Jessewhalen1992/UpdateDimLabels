@@ -24,8 +24,9 @@ namespace UpdateDimLabels
 
         public void Initialize()
         {
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#if NET8_0_OR_GREATER          // Core / .NET 8 path
+    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
 
             string dllFolder = Path.GetDirectoryName(
                 System.Reflection.Assembly.GetExecutingAssembly().Location);
