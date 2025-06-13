@@ -1,5 +1,4 @@
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using OfficeOpenXml;
 
@@ -25,9 +24,6 @@ namespace UpdateDimLabels
                     string key = sheet.Cells[r, 1].Text.Trim();
                     string val = sheet.Cells[r, 2].Text.Trim();
 
-                    if (double.TryParse(key, out double num))
-                        key = Helpers.FormatDim(num);
-
                     if (key.Length != 0 && !_map.ContainsKey(key))
                         _map.Add(key, val);
                 }
@@ -37,9 +33,6 @@ namespace UpdateDimLabels
         /// returns replacement or original value if not found
         public string Lookup(string value)
         {
-            if (double.TryParse(value, out double num))
-                value = Helpers.FormatDim(num);
-
             string replacement;
             return _map.TryGetValue(value, out replacement) ? replacement : value;
         }
