@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿// Helpers.cs
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.Gis.Map.ObjectData;
@@ -27,14 +28,24 @@ namespace UpdateDimLabels
             return dict != null && dict.TryGetValue(key, out result) ? result : "";
         }
 
-        /// Reads the *first* Object‑Data record on <ent>.
+        /// <summary>
+        /// Format a raw dimension value into a string (two decimals, trailing zeros trimmed).
+        /// </summary>
+        public static string FormatDim(double measurement)
+        {
+            return measurement.ToString("0.##");
+        }
+
+        /// <summary>
+        /// Reads the *first* Object-Data record on <ent>.
         /// Returns a dictionary fieldName → value, or null if none found.
+        /// </summary>
         public static Dictionary<string, string> ReadFirstOdRecord(Entity ent)
         {
             var mapApp = HostMapApplicationServices.Application;
             var tables = mapApp.ActiveProject.ODTables;
 
-            // ---- Try the most generic “get all OD‑records” call ----
+            // ---- Try the most generic “get all OD-records” call ----
             dynamic dynTables = tables;
             dynamic recs;
             try
