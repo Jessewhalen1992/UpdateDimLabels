@@ -5,6 +5,7 @@
     <RootNamespace>UpdateDimLabels</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>false</Deterministic>
   </PropertyGroup>
 
   <PropertyGroup>
