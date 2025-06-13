@@ -1,64 +1,104 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ───────────── Common settings ───────────── -->
   <PropertyGroup>
     <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
+
     <AssemblyName>UpdateDimLabels</AssemblyName>
     <RootNamespace>UpdateDimLabels</RootNamespace>
+
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+
     <Deterministic>false</Deterministic>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <PlatformTarget>x64</PlatformTarget>
+
+    <!-- make absolutely sure every NuGet DLL (e.g. EPPlus) is copied
+         into the build output so our post-build task can find it        -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <!-- Framework build links against AutoCAD 2024 DLLs -->
+  <!-- C# 10 so net48 understands global-using directives -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+    <LangVersion>10.0</LangVersion>
+  </PropertyGroup>
 
-  <!-- Core build links against AutoCAD 2025 DLLs -->
-  <ItemGroup Condition="'$(TargetFramework)'=='net8.0-windows'">
-    <Reference Include="acdbmgd" HintPath="C:\Program Files\Autodesk\AutoCAD 2025\acdbmgd.dll" Private="false" />
-    <Reference Include="acmgd" HintPath="C:\Program Files\Autodesk\AutoCAD 2025\acmgd.dll" Private="false" />
-    <Reference Include="accoremgd" HintPath="C:\Program Files\Autodesk\AutoCAD 2025\accoremgd.dll" Private="false" />
-    <Reference Include="ManagedMapApi" HintPath="C:\Program Files\Autodesk\AutoCAD 2025\Map\ManagedMapApi.dll" Private="false" />
+  <!-- ───────────── AutoCAD refs ───────────── -->
+  <!-- legacy toolchain = AutoCAD 2022 DLLs -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <Reference Include="accoremgd"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2022\accoremgd.dll"
+               Private="false" />
+    <Reference Include="acdbmgd"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2022\acdbmgd.dll"
+               Private="false" />
+    <Reference Include="acmgd"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2022\acmgd.dll"
+               Private="false" />
+    <Reference Include="ManagedMapApi"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2022\Map\ManagedMapApi.dll"
+               Private="false" />
+
+    <!-- dynamic binder for the ‘var dyn = ...’ code -->
+    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
+  <!-- 2025+ toolchain -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+    <Reference Include="accoremgd"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2025\accoremgd.dll"
+               Private="false" />
+    <Reference Include="acdbmgd"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2025\acdbmgd.dll"
+               Private="false" />
+    <Reference Include="acmgd"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2025\acmgd.dll"
+               Private="false" />
+    <Reference Include="ManagedMapApi"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2025\Map\ManagedMapApi.dll"
+               Private="false" />
+  </ItemGroup>
+
+  <!-- ───────────── NuGet packages ───────────── -->
   <ItemGroup>
     <PackageReference Include="EPPlus" Version="8.0.3" />
+    <!-- needed for Encoding.RegisterProvider(...) on net8 -->
+    <PackageReference Include="System.Text.Encoding.CodePages"
+                      Version="8.0.0"
+                      Condition="'$(TargetFramework)' == 'net8.0-windows'" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="accoremgd">
-      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2022\accoremgd.dll</HintPath>
-    </Reference>
-    <Reference Include="Acdbmgd">
-      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2022\acdbmgd.dll</HintPath>
-    </Reference>
-    <Reference Include="Acmgd">
-      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2022\acmgd.dll</HintPath>
-    </Reference>
-    <Reference Include="ManagedMapApi">
-      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2022\Map\ManagedMapApi.dll</HintPath>
-    </Reference>
-  </ItemGroup>
+  <!-- ───────────── Bundle copy tasks ───────────── -->
+  <Target Name="CopyToBundleNet48"
+          AfterTargets="Build"
+          Condition="'$(TargetFramework)' == 'net48'">
 
-  <!-- ───────── Copy each TFM’s output + EPPlus into the bundle ————————— -->
-  <Target Name="CopyToBundle" AfterTargets="Build">
-    <!-- where to drop it -->
     <PropertyGroup>
-      <BundleRoot>$(MSBuildProjectDirectory)\UpdateDimLabels.bundle\</BundleRoot>
-      <BundleSubDir>
-        $(TargetFramework.StartsWith('net8.0') ? '2025+' : '2014-2024')
-      </BundleSubDir>
+      <BundleDir>$(MSBuildProjectDirectory)\UpdateDimLabels.bundle\2014-2024\</BundleDir>
     </PropertyGroup>
 
-    <!-- pick up main DLL + EPPlus.dll that NuGet puts next to it -->
     <ItemGroup>
-      <_FilesToCopy Include="$(TargetDir)UpdateDimLabels.dll" />
-      <_FilesToCopy Include="$(TargetDir)EPPlus.dll"           />
+      <_Copy Include="$(TargetDir)UpdateDimLabels.dll" />
+      <_Copy Include="$(TargetDir)EPPlus*.dll" />   <!-- wildcard ≙ never breaks -->
     </ItemGroup>
 
-    <!-- copy -->
-    <Copy SourceFiles="@(_FilesToCopy)"
-          DestinationFolder ="$(BundleRoot)$(BundleSubDir)\" />
+    <Copy SourceFiles="@(_Copy)" DestinationFolder="$(BundleDir)" />
   </Target>
+
+  <Target Name="CopyToBundleNet80"
+          AfterTargets="Build"
+          Condition="'$(TargetFramework)' == 'net8.0-windows'">
+
+    <PropertyGroup>
+      <BundleDir>$(MSBuildProjectDirectory)\UpdateDimLabels.bundle\2025+\</BundleDir>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_Copy Include="$(TargetDir)UpdateDimLabels.dll" />
+      <_Copy Include="$(TargetDir)EPPlus*.dll" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_Copy)" DestinationFolder="$(BundleDir)" />
+  </Target>
+
 </Project>
