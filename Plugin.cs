@@ -91,13 +91,42 @@ namespace UpdateDimLabels
                 // corrections -----------------------------------------------------
                 dispNum = Helpers.InsertSpaceInDispNum(dispNum); // LOC 123456
                 company = _company.Lookup(company);              // CNRL (or raw)
-                purpcd = _purpose.Lookup(purpcd);               // P/L R/W (or raw)
+                string lookedUpPurpose = _purpose.Lookup(purpcd);               // P/L R/W (or raw)
+                if (lookedUpPurpose == purpcd)
+                {
+                    ed.WriteMessage($"\nWarning: pipe-class '{purpcd}' not mapped; using default.");
+                    lookedUpPurpose = "P/L R/W";
+                }
+                purpcd = lookedUpPurpose;
 
                 // build text override  -------------------------------------------
-                string measurement = dim.Measurement.ToString("0.00");
+                string measurement;
+                string overrideText = dim.DimensionText;
+                string parsedToken = null;
+                if (!string.IsNullOrWhiteSpace(overrideText))
+                {
+                    var parts = overrideText.Split(new[] { "\X" }, StringSplitOptions.None);
+                    if (parts.Length >= 2)
+                    {
+                        var token = parts[1].Trim().Split(' ')[0];
+                        if (double.TryParse(token, out double existing))
+                            parsedToken = token;
+                    }
+                }
+
+                if (parsedToken != null)
+                {
+                    measurement = Helpers.FormatDim(double.Parse(parsedToken));
+                    ed.WriteMessage("\nUsing manual dimension value: " + measurement);
+                }
+                else
+                {
+                    measurement = Helpers.FormatDim(dim.Measurement);
+                }
+
                 string newText =
-                    company + "\\X" +
-                    measurement + " " + purpcd + "\\X" +
+                    company + "\X" +
+                    measurement + " " + purpcd + "\X" +
                     dispNum;
 
                 dim.DimensionText = newText;   // override
