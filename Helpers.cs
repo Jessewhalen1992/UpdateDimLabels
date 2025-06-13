@@ -1,5 +1,4 @@
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.Gis.Map.ObjectData;
@@ -26,12 +25,6 @@ namespace UpdateDimLabels
         {
             string result;
             return dict != null && dict.TryGetValue(key, out result) ? result : "";
-        }
-
-        public static string FormatDim(double value)
-        {
-            double rounded = Math.Round(value, 2, MidpointRounding.AwayFromZero);
-            return rounded.ToString("0.00");
         }
 
         /// Reads the *first* Object‑Data record on <ent>.
