@@ -1,13 +1,13 @@
 ﻿// Plugin.cs
-using System;
-using System.IO;
-using Autodesk.AutoCAD.Runtime;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
-using OfficeOpenXml;
+using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.Runtime;
 using Autodesk.Gis.Map.ObjectData;
-
+using OfficeOpenXml;
+using System;
+using System.IO;
 // short alias
 using AcApp = Autodesk.AutoCAD.ApplicationServices.Application;
 
@@ -61,46 +61,47 @@ namespace UpdateDimLabels
 
         public void Terminate() { }
 
-        // ------------------------------------------------------------------
-        // 1) Existing command – aligned dimensions
-        // ------------------------------------------------------------------
-        [CommandMethod("UPDDIM")]
+        // ----------------------------------------------------------------------
+        // 1) Aligned-dimension command (works AutoCAD 2014-2025)
+        // ----------------------------------------------------------------------
+        [CommandMethod("UPD")]
         public void UpdateAlignedDimensionLabel()
         {
             var ed = AcApp.DocumentManager.MdiActiveDocument.Editor;
 
             try
             {
-                // pick an aligned dimension
+                // ── 1. Pick an *aligned* dimension ───────────────────────────────
                 var peoDim = new PromptEntityOptions("\nSelect aligned dimension: ");
                 peoDim.SetRejectMessage("\n…must be an *aligned* dimension.");
                 peoDim.AddAllowedClass(typeof(AlignedDimension), exactMatch: true);
                 var perDim = ed.GetEntity(peoDim);
                 if (perDim.Status != PromptStatus.OK) return;
 
-                // pick a polyline that carries Object‑Data
+                // ── 2. Pick the polyline that carries the Object-Data ────────────
                 var plObjId = PromptPolyline(ed);
                 if (plObjId == ObjectId.Null) return;
 
                 using (var tr = HostApplicationServices.WorkingDatabase
-                                  .TransactionManager.StartTransaction())
+                                     .TransactionManager.StartTransaction())
                 {
                     var dim = (AlignedDimension)tr.GetObject(
                                   perDim.ObjectId, OpenMode.ForWrite);
                     var pl = (Entity)tr.GetObject(
                                   plObjId, OpenMode.ForRead);
 
+                    // ── 3. Grab DISP_NUM / COMPANY / PURPCD from OD ──────────────
                     if (!TryGetOdValues(pl, out var dispNum, out var company, out var purpcd))
                     {
-                        ed.WriteMessage("\nNo Object‑Data found; nothing updated.");
+                        ed.WriteMessage("\nNo Object-Data found; nothing updated.");
                         tr.Abort();
                         return;
                     }
 
-                    // preserve any manual override text that has *no* “\” codes
+                    // ── 4. Decide what to use as the “measurement” text ───────────
                     string measurement;
                     if (!string.IsNullOrWhiteSpace(dim.DimensionText) &&
-                        !dim.DimensionText.Contains("\\"))
+                        !dim.DimensionText.Contains("\\")) // no control codes → user override
                     {
                         measurement = dim.DimensionText;
                         ed.WriteMessage("\nUsing manual dimension text: " + measurement);
@@ -110,20 +111,39 @@ namespace UpdateDimLabels
                         measurement = Helpers.FormatDim(dim.Measurement);
                     }
 
-                    // company\X<measurement> <purpcd>\P<dispNum>
+                    /*  New override text:
+                            <company>
+                            <measurement> <purpcd>
+                            <dispNum>
+                        Using \X to drop the baseline after line-1 and \P for paragraph.
+                    */
                     dim.DimensionText =
                         company + @"\X" +
                         measurement + " " + purpcd + @"\P" +
                         dispNum;
 
+                    // ── 5. Compute text height – API-safe for 2014-2025 ───────────
+                    double h;
+                    var dstr = (DimStyleTableRecord)tr.GetObject(
+                                   dim.DimensionStyle, OpenMode.ForRead);
+                    h = dstr.Dimtxt;              // Dimtxt = style text height in ALL releases
+                    if (h < Tolerance.Global.EqualVector) h = 2.5;   // fail-safe default
+
+                    // ── 6. Build xDir / yDir without the 2021 “XAxis” property ────
+                    Vector3d xDir = (dim.XLine2Point - dim.XLine1Point).GetNormal();
+                    Vector3d yDir = xDir.CrossProduct(dim.Normal).GetNormal(); // in-plane ⟂
+
+                    // Shift text block *toward* the arrow by ½ × text height
+                    dim.TextPosition = dim.TextPosition - yDir * (h * 0.5);
+
                     tr.Commit();
-                    Log($"UPDDIM success ({dim.ObjectId})");
+                    Log($"UPD success ({dim.ObjectId})  →  \"{dim.DimensionText}\"");
                 }
             }
             catch (System.Exception ex)
             {
-                ed.WriteMessage("\nError in UPDDIM: " + ex.Message);
-                Log("UPDDIM error: " + ex);
+                ed.WriteMessage("\nError in UPD: " + ex.Message);
+                Log("UPD error: " + ex);
             }
         }
 
