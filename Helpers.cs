@@ -37,6 +37,40 @@ namespace UpdateDimLabels
         }
 
         /// <summary>
+        /// Round <paramref name="measurement"/> to the nearest whole number
+        /// unless one of the predefined exception values is closer. The
+        /// returned string always has two decimals (e.g. "10.00").
+        /// </summary>
+        public static string RoundDimLeader(double measurement)
+        {
+            // candidate: nearest whole number
+            double bestValue = System.Math.Round(
+                                  measurement,
+                                  digits: 0,
+                                  System.MidpointRounding.AwayFromZero);
+            double bestDiff = System.Math.Abs(measurement - bestValue);
+
+            // list of allowed exception values
+            double[] exceptions = new double[]
+            {
+                10.50, 10.06, 3.05, 4.57, 6.10, 15.24,
+                30.18, 30.48, 36.58, 18.29, 9.14, 7.62
+            };
+
+            foreach (double ex in exceptions)
+            {
+                double diff = System.Math.Abs(measurement - ex);
+                if (diff < bestDiff)
+                {
+                    bestValue = ex;
+                    bestDiff = diff;
+                }
+            }
+
+            return bestValue.ToString("0.00");
+        }
+
+        /// <summary>
         /// Reads the *first* Object-Data record on <ent>.
         /// Returns a dictionary fieldName → value, or null if none found.
         /// </summary>
