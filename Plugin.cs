@@ -46,7 +46,7 @@ namespace UpdateDimLabels
                                Path.Combine(dllFolder, "PurposeLookup.xlsx"));
 
                 AcApp.DocumentManager.MdiActiveDocument?.Editor.WriteMessage(
-                    "\nUpdateDimLabels loaded.  Commands: UPDDIM (dimension) and UPM (mtext).");
+                    "\nUpdateDimLabels loaded.  Commands: UPDDIM (dimension), UPM (mtext) and UPDLDR (round).");
 
                 File.AppendAllText(_logFile,
                     $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} Initialize: SUCCESS\n");
@@ -255,6 +255,40 @@ namespace UpdateDimLabels
             {
                 ed.WriteMessage("\nError in UPM: " + ex.Message);
                 Log("UPM error: " + ex);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // 3) Dimension leader rounding
+        // ------------------------------------------------------------------
+        [CommandMethod("UPDLDR")]
+        public void UpdateDimLeaderValue()
+        {
+            var ed = AcApp.DocumentManager.MdiActiveDocument.Editor;
+
+            try
+            {
+                var peo = new PromptEntityOptions("\nSelect dimension: ");
+                peo.SetRejectMessage("\n…must be a dimension.");
+                peo.AddAllowedClass(typeof(Dimension), exactMatch: false);
+                var per = ed.GetEntity(peo);
+                if (per.Status != PromptStatus.OK) return;
+
+                using (var tr = HostApplicationServices.WorkingDatabase
+                                         .TransactionManager.StartTransaction())
+                {
+                    var dim = (Dimension)tr.GetObject(per.ObjectId, OpenMode.ForWrite);
+                    string rounded = Helpers.RoundDimLeader(dim.Measurement);
+                    dim.DimensionText = rounded;
+
+                    tr.Commit();
+                    Log($"UPDLDR ({dim.ObjectId}) → {rounded}");
+                }
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage("\nError in UPDLDR: " + ex.Message);
+                Log("UPDLDR error: " + ex);
             }
         }
 
