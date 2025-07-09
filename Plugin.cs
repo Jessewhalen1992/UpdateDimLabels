@@ -147,9 +147,10 @@ namespace UpdateDimLabels
             }
         }
 
-        // ------------------------------------------------------------------
-        // 2) NEW command – mtext
-        // ------------------------------------------------------------------
+        // ----------------------------------------------------------------------
+        // 2) Mtext command – update *or* create new label
+        //      ‑ Press <Enter> or type S to skip the pick and create a fresh label
+        // ----------------------------------------------------------------------
         [CommandMethod("UPM")]
         public void UpdateMTextLabel()
         {
@@ -157,25 +158,41 @@ namespace UpdateDimLabels
 
             try
             {
-                // pick an MText entity
-                var peoTxt = new PromptEntityOptions("\nSelect mtext: ");
+                // ── 1. Pick an existing mtext OR skip ───────────────────────────
+                var peoTxt = new PromptEntityOptions(
+                    "\nSelect mtext or press <Enter>/type S to *skip* and create new: ");
                 peoTxt.SetRejectMessage("\n…must be *mtext*.");
                 peoTxt.AddAllowedClass(typeof(MText), exactMatch: true);
+                peoTxt.AllowNone = true;
+                peoTxt.Keywords.Add("Skip");
                 var perTxt = ed.GetEntity(peoTxt);
-                if (perTxt.Status != PromptStatus.OK) return;
 
-                // pick a polyline that carries Object‑Data
+                bool createNew =
+                    perTxt.Status == PromptStatus.None ||
+                    (perTxt.Status == PromptStatus.Keyword &&
+                     perTxt.StringResult.Equals("Skip", StringComparison.OrdinalIgnoreCase));
+
+                if (!createNew && perTxt.Status != PromptStatus.OK) return;
+
+                // ── 2. Pick the polyline that carries Object‑Data ───────────────
                 var plObjId = PromptPolyline(ed);
                 if (plObjId == ObjectId.Null) return;
 
-                using (var tr = HostApplicationServices.WorkingDatabase
-                                  .TransactionManager.StartTransaction())
+                // If we’re making a new label, ask for insertion point now
+                Point3d insPt = Point3d.Origin;
+                if (createNew)
                 {
-                    var mtx = (MText)tr.GetObject(
-                                  perTxt.ObjectId, OpenMode.ForWrite);
-                    var pl = (Entity)tr.GetObject(
-                                  plObjId, OpenMode.ForRead);
+                    var ppr = ed.GetPoint("\nSpecify insertion point for new label: ");
+                    if (ppr.Status != PromptStatus.OK) return;
+                    insPt = ppr.Value;
+                }
 
+                using (var tr = HostApplicationServices.WorkingDatabase
+                                     .TransactionManager.StartTransaction())
+                {
+                    var pl = (Entity)tr.GetObject(plObjId, OpenMode.ForRead);
+
+                    // ── 3. Read OD and look‑ups ──────────────────────────────────
                     if (!TryGetOdValues(pl, out var dispNum, out var company, out var purpcd))
                     {
                         ed.WriteMessage("\nNo Object‑Data found; nothing updated.");
@@ -183,18 +200,55 @@ namespace UpdateDimLabels
                         return;
                     }
 
-                    string middle = mtx.Text.Trim();  // keep user’s original wording
-                    if (middle.Length == 0)
-                        middle = "<blank>";
+                    // ── 4‑A. UPDATE existing mtext ───────────────────────────────
+                    if (!createNew)
+                    {
+                        var mtx = (MText)tr.GetObject(perTxt.ObjectId, OpenMode.ForWrite);
 
-                    // company\n<middle> <purpcd>\n<dispNum>
-                    mtx.Contents =
+                        string middle = mtx.Text.Trim();
+                        if (middle.Length == 0) middle = "<blank>";
+
+                        // company\n<middle> <purpcd>\n<dispNum>
+                        mtx.Contents =
+                            company + @"\P" +
+                            middle + " " + purpcd + @"\P" +
+                            dispNum;
+
+                        tr.Commit();
+                        Log($"UPM update ({mtx.ObjectId})");
+                        return;
+                    }
+
+                    // ── 4‑B. CREATE brand‑new mtext ──────────────────────────────
+                    var db = HostApplicationServices.WorkingDatabase;
+                    var btr = (BlockTableRecord)tr.GetObject(
+                                  db.CurrentSpaceId, OpenMode.ForWrite);
+
+                    // Build contents purely from OD
+                    string contents =
                         company + @"\P" +
-                        middle + " " + purpcd + @"\P" +
+                        purpcd + @"\P" +
                         dispNum;
 
+                    var newMtx = new MText
+                    {
+                        Location = insPt,
+                        TextHeight = 10,
+                        LayerId = db.Clayer,
+                        Contents = contents,
+                        Attachment = AttachmentPoint.BottomCenter   // tweak if you prefer
+                    };
+
+                    // Set text style “80L” if present
+                    var tst = (TextStyleTable)tr.GetObject(db.TextStyleTableId, OpenMode.ForRead);
+                    if (tst.Has("80L"))
+                        newMtx.TextStyleId = tst["80L"];
+
+                    btr.AppendEntity(newMtx);
+                    tr.AddNewlyCreatedDBObject(newMtx, true);
+
                     tr.Commit();
-                    Log($"UPM success ({mtx.ObjectId})");
+                    Log($"UPM create ({newMtx.ObjectId})");
                 }
             }
             catch (System.Exception ex)
