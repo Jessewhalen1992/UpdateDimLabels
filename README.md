@@ -5,6 +5,7 @@
 ```bash
 dotnet build -c Release            # builds net48 + net8.0-windows
 # The ready-to-use plugin appears in: UpdateDimLabels.bundle
+# Fody/Costura merges EPPlus so only `UpdateDimLabels.dll` is needed
 # Copy that folder to C:\ProgramData\Autodesk\ApplicationPlugins
 ```
 
@@ -16,8 +17,8 @@ This AutoCAD Map 3D plug‑in adds the `UPDDIM` command which updates an aligned
 
 1. Open `UpdateDimLabels.sln` in Visual Studio 2022 or newer.
 2. Build the **Release|x64** configuration.
-   All required dependency DLLs will be copied to the output folder
-   (`bin\x64\Release`).
+   Fody runs automatically and merges all required DLLs into
+   `UpdateDimLabels.dll` in the output folder (`bin\x64\Release`).
 3. Copy `CompanyLookup.xlsx` and `PurposeLookup.xlsx` to the output
    folder next to `UpdateDimLabels.dll`.
 
