@@ -62,6 +62,9 @@
   <!-- ───────────── NuGet packages ───────────── -->
   <ItemGroup>
     <PackageReference Include="EPPlus" Version="8.0.3" />
+    <!-- merge dependencies into single DLL -->
+    <PackageReference Include="Fody" Version="6.7.0" PrivateAssets="all" />
+    <PackageReference Include="Costura.Fody" Version="5.8.0" PrivateAssets="all" />
     <!-- needed for Encoding.RegisterProvider(...) on net8 -->
     <PackageReference Include="System.Text.Encoding.CodePages"
                       Version="8.0.0"
@@ -79,7 +82,6 @@
 
     <ItemGroup>
       <_Copy Include="$(TargetDir)UpdateDimLabels.dll" />
-      <_Copy Include="$(TargetDir)EPPlus*.dll" />   <!-- wildcard ≙ never breaks -->
     </ItemGroup>
 
     <Copy SourceFiles="@(_Copy)" DestinationFolder="$(BundleDir)" />
@@ -95,7 +97,6 @@
 
     <ItemGroup>
       <_Copy Include="$(TargetDir)UpdateDimLabels.dll" />
-      <_Copy Include="$(TargetDir)EPPlus*.dll" />
     </ItemGroup>
 
     <Copy SourceFiles="@(_Copy)" DestinationFolder="$(BundleDir)" />
