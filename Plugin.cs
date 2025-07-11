@@ -278,7 +278,19 @@ namespace UpdateDimLabels
                                          .TransactionManager.StartTransaction())
                 {
                     var dim = (Dimension)tr.GetObject(per.ObjectId, OpenMode.ForWrite);
-                    string rounded = Helpers.RoundDimLeader(dim.Measurement);
+
+                    double currentValue;
+                    if (!string.IsNullOrWhiteSpace(dim.DimensionText) &&
+                        double.TryParse(dim.DimensionText, out var parsed))
+                    {
+                        currentValue = parsed;
+                    }
+                    else
+                    {
+                        currentValue = dim.Measurement;
+                    }
+
+                    string rounded = Helpers.RoundDimLeader(currentValue);
                     dim.DimensionText = rounded;
 
                     tr.Commit();
