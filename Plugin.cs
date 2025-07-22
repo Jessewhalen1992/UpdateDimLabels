@@ -110,7 +110,7 @@ namespace UpdateDimLabels
                     }
                     else
                     {
-                        measurement = Helpers.FormatDim(dim.Measurement);
+                        measurement = Helpers.RoundDimLeader(dim.Measurement);
                     }
 
                     /*  New override text:
