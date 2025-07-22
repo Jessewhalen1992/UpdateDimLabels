@@ -64,7 +64,8 @@ namespace UpdateDimLabels
         // ----------------------------------------------------------------------
         // 1) Aligned-dimension command (works AutoCAD 2014-2025)
         // ----------------------------------------------------------------------
-        [CommandMethod("UPD")]
+        [CommandMethod("UPDDIM")]
+[CommandMethod("UPD")]
         public void UpdateAlignedDimensionLabel()
         {
             var ed = AcApp.DocumentManager.MdiActiveDocument.Editor;
