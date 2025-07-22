@@ -30,11 +30,15 @@
   <!-- Use C# 9 for the .NET 4.5.2 build (C# 10 requires .NET 6+) -->
   <PropertyGroup Condition="'$(TargetFramework)' == 'net452'">
     <LangVersion>9.0</LangVersion>
+  <ImplicitUsings>disable</ImplicitUsings>
+
   </PropertyGroup>
 
-  <!-- C# 10 is still used for the modern build -->
+    
+<!-- C# 10 is still used for the modern build -->
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <LangVersion>10.0</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
 
   <!-- Legacy toolchain = AutoCAD 2015 DLLs -->
