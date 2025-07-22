@@ -1,49 +1,62 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- ───────────── Common settings ───────────── -->
+  <!--
+    This patched project re-targets the legacy build for AutoCAD Map 3D 2015.
+    The original version compiled against .NET 4.8 and referenced AutoCAD 2022
+    assemblies; however, AutoCAD 2015 only supports .NET 4.5 and cannot load
+    assemblies compiled against newer frameworks.  The changes below set the
+    legacy target to .NET Framework 4.5.2 and update the hint paths for the
+    AutoCAD DLLs to point at an AutoCAD 2015 installation.  The modern
+    `net8.0‑windows` build remains unmodified.
+  -->
   <PropertyGroup>
-    <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
+    <!-- Target the legacy build at .NET 4.5.2 instead of .NET 4.8 -->
+    <TargetFrameworks>net452;net8.0-windows</TargetFrameworks>
 
     <AssemblyName>UpdateDimLabels</AssemblyName>
     <RootNamespace>UpdateDimLabels</RootNamespace>
 
+    <!-- Enable nullable reference types and implicit usings as before -->
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 
-    <Deterministic>false</Deterministic>
-    <PlatformTarget>x64</PlatformTarget>
-
-    <!-- make absolutely sure every NuGet DLL (e.g. EPPlus) is copied
-         into the build output so our post-build task can find it        -->
+    <!-- Copy all NuGet DLLs into the output folder so Costura can find them -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
+    <!-- Compile for x64 (AutoCAD is 64‑bit) -->
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
-  <!-- C# 10 so net48 understands global-using directives -->
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+  <!-- Use C# 9 for the .NET 4.5.2 build (C# 10 requires .NET 6+) -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net452'">
+    <LangVersion>9.0</LangVersion>
+  </PropertyGroup>
+
+  <!-- C# 10 is still used for the modern build -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <LangVersion>10.0</LangVersion>
   </PropertyGroup>
 
-  <!-- ───────────── AutoCAD refs ───────────── -->
-  <!-- legacy toolchain = AutoCAD 2022 DLLs -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+  <!-- Legacy toolchain = AutoCAD 2015 DLLs -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
     <Reference Include="accoremgd"
-               HintPath="C:\Program Files\Autodesk\AutoCAD 2022\accoremgd.dll"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2015\accoremgd.dll"
                Private="false" />
     <Reference Include="acdbmgd"
-               HintPath="C:\Program Files\Autodesk\AutoCAD 2022\acdbmgd.dll"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2015\acdbmgd.dll"
                Private="false" />
     <Reference Include="acmgd"
-               HintPath="C:\Program Files\Autodesk\AutoCAD 2022\acmgd.dll"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2015\acmgd.dll"
                Private="false" />
     <Reference Include="ManagedMapApi"
-               HintPath="C:\Program Files\Autodesk\AutoCAD 2022\Map\ManagedMapApi.dll"
+               HintPath="C:\Program Files\Autodesk\AutoCAD 2015\Map\ManagedMapApi.dll"
                Private="false" />
 
     <!-- dynamic binder for the ‘var dyn = ...’ code -->
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
-  <!-- 2025+ toolchain -->
+  <!-- 2025+ toolchain (unchanged) -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <Reference Include="accoremgd"
                HintPath="C:\Program Files\Autodesk\AutoCAD 2025\accoremgd.dll"
@@ -59,7 +72,7 @@
                Private="false" />
   </ItemGroup>
 
-  <!-- ───────────── NuGet packages ───────────── -->
+  <!-- NuGet packages (unchanged) -->
   <ItemGroup>
     <PackageReference Include="EPPlus" Version="8.0.3" />
     <!-- merge dependencies into single DLL -->
@@ -71,34 +84,29 @@
                       Condition="'$(TargetFramework)' == 'net8.0-windows'" />
   </ItemGroup>
 
-  <!-- ───────────── Bundle copy tasks ───────────── -->
-  <Target Name="CopyToBundleNet48"
+  <!-- Copy bundle tasks -->
+  <Target Name="CopyToBundleNet452"
           AfterTargets="Build"
-          Condition="'$(TargetFramework)' == 'net48'">
-
+          Condition="'$(TargetFramework)' == 'net452'">
     <PropertyGroup>
       <BundleDir>$(MSBuildProjectDirectory)\UpdateDimLabels.bundle\2014-2024\</BundleDir>
     </PropertyGroup>
-
     <ItemGroup>
       <_Copy Include="$(TargetDir)UpdateDimLabels.dll" />
     </ItemGroup>
-
     <Copy SourceFiles="@(_Copy)" DestinationFolder="$(BundleDir)" />
   </Target>
 
+  <!-- Modern copy task remains unchanged -->
   <Target Name="CopyToBundleNet80"
           AfterTargets="Build"
           Condition="'$(TargetFramework)' == 'net8.0-windows'">
-
     <PropertyGroup>
       <BundleDir>$(MSBuildProjectDirectory)\UpdateDimLabels.bundle\2025+\</BundleDir>
     </PropertyGroup>
-
     <ItemGroup>
       <_Copy Include="$(TargetDir)UpdateDimLabels.dll" />
     </ItemGroup>
-
     <Copy SourceFiles="@(_Copy)" DestinationFolder="$(BundleDir)" />
   </Target>
 
