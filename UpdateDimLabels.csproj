@@ -39,17 +39,24 @@
 
   <!-- Legacy toolchain = AutoCAD 2015 DLLs -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
+    <!--
+      Use the AutoCAD 2015 assemblies installed on the user's machine.  These
+      DLLs live alongside the project in the `2015 dlls` folder.  Using a
+      user‑specific path ensures that Visual Studio can locate the 2015
+      assemblies on your development machine.  Adjust the path if you move
+      the DLLs elsewhere.
+    -->
     <Reference Include="accoremgd"
-               HintPath="C:\Program Files\Autodesk\AutoCAD 2015\accoremgd.dll"
+               HintPath="C:\Users\Jesse 2025\Desktop\UpdateDimLabels\2015 dlls\accoremgd.dll"
                Private="false" />
     <Reference Include="acdbmgd"
-               HintPath="C:\Program Files\Autodesk\AutoCAD 2015\acdbmgd.dll"
+               HintPath="C:\Users\Jesse 2025\Desktop\UpdateDimLabels\2015 dlls\acdbmgd.dll"
                Private="false" />
     <Reference Include="acmgd"
-               HintPath="C:\Program Files\Autodesk\AutoCAD 2015\acmgd.dll"
+               HintPath="C:\Users\Jesse 2025\Desktop\UpdateDimLabels\2015 dlls\acmgd.dll"
                Private="false" />
     <Reference Include="ManagedMapApi"
-               HintPath="C:\Program Files\Autodesk\AutoCAD 2015\Map\ManagedMapApi.dll"
+               HintPath="C:\Users\Jesse 2025\Desktop\UpdateDimLabels\2015 dlls\ManagedMapApi.dll"
                Private="false" />
 
     <!-- dynamic binder for the ‘var dyn = ...’ code -->
@@ -76,8 +83,15 @@
   <ItemGroup>
     <PackageReference Include="EPPlus" Version="8.0.3" />
     <!-- merge dependencies into single DLL -->
-    <PackageReference Include="Fody" Version="6.7.0" PrivateAssets="all" />
-    <PackageReference Include="Costura.Fody" Version="5.8.0" PrivateAssets="all" />
+    <!--
+      Use Fody 6.8.2 or later to satisfy the dependency from Costura.Fody 6.0.0.
+      Earlier versions (e.g. 6.7.0) cause package downgrade warnings during
+      restore because Costura.Fody 6.0.0 requires Fody >= 6.8.2.
+    -->
+    <PackageReference Include="Fody" Version="6.8.2" PrivateAssets="all" />
+    <!-- upgrade Costura.Fody to 6.0.0 to align with the Fody version and fix
+         package downgrade warnings -->
+    <PackageReference Include="Costura.Fody" Version="6.0.0" PrivateAssets="all" />
     <!-- needed for Encoding.RegisterProvider(...) on net8 -->
     <PackageReference Include="System.Text.Encoding.CodePages"
                       Version="8.0.0"
