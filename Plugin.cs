@@ -33,11 +33,12 @@ namespace UpdateDimLabels
 
             try
             {
-                // EPPlus 8+ licence
-                ExcelPackage.License.SetNonCommercialOrganization(
-                    "YourOrganizationName");
+#if NET8_0_OR_GREATER
+                // EPPlus 8+ licence (for net8 build only)
+                ExcelPackage.License.SetNonCommercialOrganization("compass");
                 // —or— for personal use:
                 // ExcelPackage.License.SetNonCommercialPersonal("YourName");
+#endif
 
                 // load look‑up tables
                 _company = new ExcelLookup(

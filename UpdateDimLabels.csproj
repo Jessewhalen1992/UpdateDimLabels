@@ -30,12 +30,10 @@
   <!-- Use C# 9 for the .NET 4.5.2 build (C# 10 requires .NET 6+) -->
   <PropertyGroup Condition="'$(TargetFramework)' == 'net452'">
     <LangVersion>9.0</LangVersion>
-  <ImplicitUsings>disable</ImplicitUsings>
-
+    <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
-
-    
-<!-- C# 10 is still used for the modern build -->
+  
+  <!-- C# 10 is still used for the modern build -->
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
     <LangVersion>10.0</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
@@ -43,13 +41,7 @@
 
   <!-- Legacy toolchain = AutoCAD 2015 DLLs -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
-    <!--
-      Use the AutoCAD 2015 assemblies installed on the user's machine.  These
-      DLLs live alongside the project in the `2015 dlls` folder.  Using a
-      user‑specific path ensures that Visual Studio can locate the 2015
-      assemblies on your development machine.  Adjust the path if you move
-      the DLLs elsewhere.
-    -->
+    <!-- AutoCAD 2015 assemblies -->
     <Reference Include="accoremgd"
                HintPath="C:\Users\Jesse 2025\Desktop\UpdateDimLabels\2015 dlls\accoremgd.dll"
                Private="false" />
@@ -62,8 +54,6 @@
     <Reference Include="ManagedMapApi"
                HintPath="C:\Users\Jesse 2025\Desktop\UpdateDimLabels\2015 dlls\ManagedMapApi.dll"
                Private="false" />
-
-    <!-- dynamic binder for the ‘var dyn = ...’ code -->
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
@@ -83,26 +73,19 @@
                Private="false" />
   </ItemGroup>
 
-  <!-- NuGet packages (unchanged) -->
+  <!-- Updated NuGet packages with conditional versions -->
   <ItemGroup>
-    <PackageReference Include="EPPlus" Version="8.0.3" />
-    <!-- merge dependencies into single DLL -->
-    <!--
-      Use Fody 6.8.2 or later to satisfy the dependency from Costura.Fody 6.0.0.
-      Earlier versions (e.g. 6.7.0) cause package downgrade warnings during
-      restore because Costura.Fody 6.0.0 requires Fody >= 6.8.2.
-    -->
-    <PackageReference Include="Fody" Version="6.8.2" PrivateAssets="all" />
-    <!-- upgrade Costura.Fody to 6.0.0 to align with the Fody version and fix
-         package downgrade warnings -->
-    <PackageReference Include="Costura.Fody" Version="6.0.0" PrivateAssets="all" />
-    <!-- needed for Encoding.RegisterProvider(...) on net8 -->
-    <PackageReference Include="System.Text.Encoding.CodePages"
-                      Version="8.0.0"
-                      Condition="'$(TargetFramework)' == 'net8.0-windows'" />
+    <!-- EPPlus version specific to net452 -->
+    <PackageReference Include="EPPlus" Version="4.5.3.3" Condition="'$(TargetFramework)' == 'net452'" />
+    
+    <!-- Packages specific to net8 -->
+    <PackageReference Include="EPPlus" Version="8.0.3" Condition="'$(TargetFramework)' == 'net8.0-windows'" />
+    <PackageReference Include="Fody" Version="6.8.2" PrivateAssets="all" Condition="'$(TargetFramework)' == 'net8.0-windows'" />
+    <PackageReference Include="Costura.Fody" Version="6.0.0" PrivateAssets="all" Condition="'$(TargetFramework)' == 'net8.0-windows'" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" Condition="'$(TargetFramework)' == 'net8.0-windows'" />
   </ItemGroup>
 
-  <!-- Copy bundle tasks -->
+  <!-- Updated copy bundle task for net452 -->
   <Target Name="CopyToBundleNet452"
           AfterTargets="Build"
           Condition="'$(TargetFramework)' == 'net452'">
@@ -111,6 +94,7 @@
     </PropertyGroup>
     <ItemGroup>
       <_Copy Include="$(TargetDir)UpdateDimLabels.dll" />
+      <_Copy Include="$(TargetDir)EPPlus.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(_Copy)" DestinationFolder="$(BundleDir)" />
   </Target>
