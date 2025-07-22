@@ -102,11 +102,14 @@ namespace UpdateDimLabels
 
                     // ── 4. Decide what to use as the “measurement” text ───────────
                     string measurement;
+                    double raw;
                     if (!string.IsNullOrWhiteSpace(dim.DimensionText) &&
-                        !dim.DimensionText.Contains("\\")) // no control codes → user override
+                        !dim.DimensionText.Contains("\\") &&
+                        double.TryParse(dim.DimensionText, out raw))
                     {
-                        measurement = dim.DimensionText;
-                        ed.WriteMessage("\nUsing manual dimension text: " + measurement);
+                        // manual text is numeric → round it
+                        measurement = Helpers.RoundDimLeader(raw);
+                        ed.WriteMessage($"\nRounded manual dimension text: {measurement}");
                     }
                     else
                     {
