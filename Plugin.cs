@@ -63,44 +63,44 @@ namespace UpdateDimLabels
         public void Terminate() { }
 
         // ----------------------------------------------------------------------
-        // 1) Aligned-dimension command (works AutoCAD 2014-2025)
+        // 1) Aligned-dimension command (works AutoCAD 2014‑2025)
         // ----------------------------------------------------------------------
         [CommandMethod("UPDDIM")]
-[CommandMethod("UPD")]
+        [CommandMethod("UPD")]
         public void UpdateAlignedDimensionLabel()
         {
             var ed = AcApp.DocumentManager.MdiActiveDocument.Editor;
 
             try
             {
-                // ── 1. Pick an *aligned* dimension ───────────────────────────────
+                // 1. Pick an *aligned* dimension
                 var peoDim = new PromptEntityOptions("\nSelect aligned dimension: ");
                 peoDim.SetRejectMessage("\n…must be an *aligned* dimension.");
                 peoDim.AddAllowedClass(typeof(AlignedDimension), exactMatch: true);
                 var perDim = ed.GetEntity(peoDim);
                 if (perDim.Status != PromptStatus.OK) return;
 
-                // ── 2. Pick the polyline that carries the Object-Data ────────────
+                // 2. Pick the polyline that carries the Object‑Data
                 var plObjId = PromptPolyline(ed);
                 if (plObjId == ObjectId.Null) return;
 
                 using (var tr = HostApplicationServices.WorkingDatabase
-                                     .TransactionManager.StartTransaction())
+                                           .TransactionManager.StartTransaction())
                 {
                     var dim = (AlignedDimension)tr.GetObject(
                                   perDim.ObjectId, OpenMode.ForWrite);
                     var pl = (Entity)tr.GetObject(
                                   plObjId, OpenMode.ForRead);
 
-                    // ── 3. Grab DISP_NUM / COMPANY / PURPCD from OD ──────────────
+                    // 3. Grab DISP_NUM / COMPANY / PURPCD from OD
                     if (!TryGetOdValues(pl, out var dispNum, out var company, out var purpcd))
                     {
-                        ed.WriteMessage("\nNo Object-Data found; nothing updated.");
+                        ed.WriteMessage("\nNo Object‑Data found; nothing updated.");
                         tr.Abort();
                         return;
                     }
 
-                    // ── 4. Decide what to use as the “measurement” text ───────────
+                    // 4. Decide what to use as the “measurement” text
                     string measurement;
                     double raw;
                     if (!string.IsNullOrWhiteSpace(dim.DimensionText) &&
@@ -117,29 +117,48 @@ namespace UpdateDimLabels
                     }
 
                     /*  New override text:
-                            <company>
-                            <measurement> <purpcd>
-                            <dispNum>
-                        Using \X to drop the baseline after line-1 and \P for paragraph.
-                    */
+                     *  Using \X to drop the baseline after line‑1 and \P for paragraph.
+                     */
                     dim.DimensionText =
                         company + @"\X" +
                         measurement + " " + purpcd + @"\P" +
                         dispNum;
 
-                    // ── 5. Compute text height – API-safe for 2014-2025 ───────────
+                    // 5. Compute text height – API‑safe for 2014‑2025
                     double h;
                     var dstr = (DimStyleTableRecord)tr.GetObject(
                                    dim.DimensionStyle, OpenMode.ForRead);
-                    h = dstr.Dimtxt;              // Dimtxt = style text height in ALL releases
-                    if (h < Tolerance.Global.EqualVector) h = 2.5;   // fail-safe default
+                    h = dstr.Dimtxt;              // Dimtxt = style text height in all releases
+                    if (h < Tolerance.Global.EqualVector) h = 2.5;   // fail‑safe default
 
-                    // ── 6. Build xDir / yDir without the 2021 “XAxis” property ────
+                    // 6. Build xDir / yDir without the 2021 “XAxis” property
                     Vector3d xDir = (dim.XLine2Point - dim.XLine1Point).GetNormal();
-                    Vector3d yDir = xDir.CrossProduct(dim.Normal).GetNormal(); // in-plane ⟂
+                    Vector3d yDir = xDir.CrossProduct(dim.Normal).GetNormal(); // in‑plane ⟂
 
-                    // Shift text block *toward* the arrow by ½ × text height
-                    dim.TextPosition = dim.TextPosition - yDir * (h * 0.5);
+                    // 7. Adjust the text position based on the number of lines.
+                    // Split the override text on \X (baseline drop) and \P (paragraph)
+                    // codes to determine how many visible lines are present.  For one or
+                    // two lines we use ½ × h as before; for three or more lines we add
+                    // an extra ½ × h per additional line so the leader arrow remains
+                    // centred on the text block.
+                    int lineCount = 1;
+                    try
+                    {
+                        var parts = dim.DimensionText.Split(
+                            new[] { "\\X", "\\P" }, StringSplitOptions.None);
+                        lineCount = parts.Length;
+                    }
+                    catch
+                    {
+                        lineCount = 1;
+                    }
+
+                    // For 1–2 lines use a factor of 1; for 3+ use (lineCount – 1)
+                    double lineFactor = Math.Max(1.0, (lineCount - 1));
+                    double offset = h * 0.5 * lineFactor;
+
+                    // Shift text block toward the arrow by the computed offset
+                    dim.TextPosition = dim.TextPosition - yDir * offset;
 
                     tr.Commit();
                     Log($"UPD success ({dim.ObjectId})  →  \"{dim.DimensionText}\"");
